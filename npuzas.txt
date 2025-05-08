@@ -1,0 +1,243 @@
+import heapq
+import math
+import networkx as nx
+import matplotlib.pyplot as plt
+
+class NPuzzleSolverAStar:
+    def __init__(self, start, goal, size=None):
+        """
+        Initialize the N-Puzzle solver with start and goal states.
+        
+        Args:
+            start: Tuple representing the initial state
+            goal: Tuple representing the goal state
+            size: Size of grid (e.g., 3 for 3x3, 4 for 4x4). If None, it's calculated from length.
+        """
+        self.start = start
+        self.goal = goal
+        
+        # Calculate grid size if not provided
+        if size is None:
+            self.size = int(math.sqrt(len(start)))
+        else:
+            self.size = size
+            
+        # Validate input
+        if len(start) != self.size * self.size or len(goal) != self.size * self.size:
+            raise ValueError(f"Input states must contain {self.size * self.size} elements for a {self.size}x{self.size} puzzle")
+
+    def heuristic(self, state):
+        """Manhattan Distance heuristic function."""
+        distance = 0
+        for i in range(len(state)):
+            if state[i] == 0:
+                continue  # Skip the blank tile
+            goal_index = self.goal.index(state[i])
+            # Calculate Manhattan distance using row and column differences
+            distance += abs(goal_index // self.size - i // self.size) + abs(goal_index % self.size - i % self.size)
+        return distance
+
+    def get_neighbors(self, state):
+        """Generate possible moves by swapping the empty tile (0) with its neighbors."""
+        neighbors = []
+        idx = state.index(0)  # Find the empty tile (0)
+        
+        # Calculate possible moves dynamically based on grid size
+        possible_moves = []
+        
+        # Check up
+        if idx >= self.size:
+            possible_moves.append(idx - self.size)
+        
+        # Check down
+        if idx < len(state) - self.size:
+            possible_moves.append(idx + self.size)
+        
+        # Check left
+        if idx % self.size > 0:
+            possible_moves.append(idx - 1)
+        
+        # Check right
+        if idx % self.size < self.size - 1:
+            possible_moves.append(idx + 1)
+        
+        # Generate new states by swapping
+        for move in possible_moves:
+            new_state = list(state)
+            new_state[idx], new_state[move] = new_state[move], new_state[idx]  # Swap
+            neighbors.append(tuple(new_state))
+        
+        return neighbors
+
+    def a_star_search(self):
+        """A* Search Algorithm for N-Puzzle."""
+        priority_queue = []
+        heapq.heappush(priority_queue, (self.heuristic(self.start), 0, self.start, None))  # (f, g, state, parent)
+        visited = set()
+        parent = {self.start: (None, 0)}
+
+        graph = nx.DiGraph()  # Directed graph for tree visualization
+        graph.add_node(self.start, heuristic=self.heuristic(self.start))
+
+        while priority_queue:
+            f_value, g_value, current, prev = heapq.heappop(priority_queue)
+            
+            if current in visited:
+                continue
+            visited.add(current)
+            
+            parent[current] = (prev, g_value)  # Store parent and cost
+            
+            if current == self.goal:
+                return self.reconstruct_path(parent, current, graph)
+
+            for neighbor in self.get_neighbors(current):
+                if neighbor not in visited:
+                    g_new = g_value + 1  # Cost from start to this neighbor
+                    f_new = g_new + self.heuristic(neighbor)
+                    heapq.heappush(priority_queue, (f_new, g_new, neighbor, current))
+                    graph.add_edge(current, neighbor)
+                    graph.add_node(neighbor, heuristic=self.heuristic(neighbor))
+
+        return None  # No solution found
+
+    def reconstruct_path(self, parent, current, graph):
+        """Reconstruct the solution path from goal to start."""
+        path = []
+        while current:
+            g_value = parent[current][1]
+            path.append((current, g_value, self.heuristic(current)))
+            current = parent[current][0]
+        path.reverse()  # Reverse to get start-to-goal order
+
+        self.plot_tree(graph, path)  # Plot the tree
+        return path
+
+    def display_state(self, state, cost, heuristic_value):
+        """Display the puzzle state in a structured format with heuristic values."""
+        print(f"G(n): {cost}, H(n): {heuristic_value}, F(n): {cost + heuristic_value}")
+        
+        # Create dynamic grid based on size
+        horizontal_line = "+" + "---+" * self.size
+        
+        for i in range(0, len(state), self.size):
+            print(horizontal_line)
+            row = "| "
+            for j in range(self.size):
+                value = state[i + j]
+                row += f"{value if value != 0 else ' '} | "
+            print(row)
+        print(horizontal_line + "\n")
+
+    def plot_tree(self, graph, solution_path):
+        """Improved Tree Visualization using Graphviz."""
+        try:
+            from networkx.drawing.nx_agraph import graphviz_layout
+            pos = graphviz_layout(graph, prog="dot", args="-Grankdir=TB")  # Top-down tree layout
+        except ImportError:
+            pos = nx.spring_layout(graph, seed=42)  # Fallback
+
+        # For larger puzzles, create a more compact representation of states
+        def format_state(state):
+            if self.size <= 3:  # Show full state for 3x3 and smaller
+                return str(state)
+            else:  # For larger puzzles, show a more compact representation
+                return f"State: {hash(state) % 10000}"  # Use hash to create a unique identifier
+
+        # Labels with heuristic values
+        labels = {node: f"H: {graph.nodes[node]['heuristic']}" for node in graph.nodes}
+        
+        # For large puzzles, simplify the graph by limiting nodes
+        if len(graph.nodes) > 50:
+            solution_nodes = [step[0] for step in solution_path]
+            subgraph_nodes = set(solution_nodes)
+            # Add some neighbors to the solution path
+            for node in solution_nodes:
+                neighbors = list(graph.neighbors(node))
+                subgraph_nodes.update(neighbors[:2])  # Add up to 2 neighbors
+            
+            # Create subgraph
+            subgraph = graph.subgraph(subgraph_nodes)
+            graph = subgraph
+            pos = {node: pos[node] for node in subgraph_nodes if node in pos}
+
+        plt.figure(figsize=(15, 10))  # Adjust figure size for better spacing
+        nx.draw(
+            graph, pos, with_labels=True, labels=labels, node_size=1200,
+            node_color='lightblue', font_size=8, font_weight='bold', alpha=0.8, arrows=True
+        )
+
+        # Highlight the solution path
+        solution_nodes = [step[0] for step in solution_path]
+        edges = [(solution_nodes[i], solution_nodes[i + 1]) for i in range(len(solution_nodes) - 1)]
+        nx.draw_networkx_edges(graph, pos, edgelist=edges, edge_color='red', width=2)
+
+        plt.title(f"{self.size}x{self.size} Puzzle Search Tree (A* Algorithm) with Heuristic & Cost Values", fontsize=14)
+        plt.show()
+
+    @staticmethod
+    def get_input():
+        """Get user input for the N-puzzle start and goal states."""
+        size = int(input("Enter the puzzle size (e.g., 3 for 3x3, 4 for 4x4): "))
+        total_tiles = size * size
+        
+        print(f"Enter the {size}x{size} puzzle initial state row by row (use 0 for blank, space-separated):")
+        start = tuple(int(num) for _ in range(size) for num in input().split())
+        
+        print(f"Enter the {size}x{size} puzzle goal state row by row (use 0 for blank, space-separated):")
+        goal = tuple(int(num) for _ in range(size) for num in input().split())
+        
+        return start, goal, size
+
+    @staticmethod
+    def is_solvable(state, goal, size):
+        """
+        Check if the N-puzzle is solvable.
+        For odd-sized puzzles, check if the number of inversions is even.
+        For even-sized puzzles, check if the sum of the blank row (from bottom) and number of inversions have different parity.
+        """
+        def count_inversions(state):
+            inversions = 0
+            for i in range(len(state)):
+                if state[i] == 0:
+                    continue
+                for j in range(i + 1, len(state)):
+                    if state[j] != 0 and state[i] > state[j]:
+                        inversions += 1
+            return inversions
+        
+        # Find blank positions
+        blank_row_start = size - 1 - (state.index(0) // size)
+        blank_row_goal = size - 1 - (goal.index(0) // size)
+        
+        inversions_start = count_inversions(state)
+        inversions_goal = count_inversions(goal)
+        
+        if size % 2 == 1:  # Odd-sized puzzle
+            return inversions_start % 2 == inversions_goal % 2
+        else:  # Even-sized puzzle
+            return (inversions_start + blank_row_start) % 2 == (inversions_goal + blank_row_goal) % 2
+
+
+if __name__ == "__main__":
+    try:
+        start, goal, size = NPuzzleSolverAStar.get_input()
+        
+        if len(start) != size * size or len(goal) != size * size:
+            print(f"Invalid input! Please enter exactly {size * size} numbers for a {size}x{size} puzzle.")
+        else:
+            # Check if the puzzle is solvable
+            if not NPuzzleSolverAStar.is_solvable(start, goal, size):
+                print("This puzzle is not solvable. Please check your input.")
+            else:
+                solver = NPuzzleSolverAStar(start, goal, size)
+                print("Solving puzzle... This may take a while for larger puzzles.")
+                result = solver.a_star_search()
+                if result:
+                    print(f"Solution found in {len(result)-1} steps:")
+                    for step, cost, heuristic_value in result:
+                        solver.display_state(step, cost, heuristic_value)
+                else:
+                    print("No solution found!")
+    except ValueError as e:
+        print(f"Error: {e}")

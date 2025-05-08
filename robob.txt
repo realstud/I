@@ -1,0 +1,239 @@
+import heapq
+import time
+import matplotlib.pyplot as plt
+import numpy as np
+
+def best_first_search(grid, start, goal):
+    """
+    Perform Best First Search on a grid to find the shortest path from start to goal.
+    
+    Args:
+        grid: 2D list representing the environment (0 for free, 1 for obstacle)
+        start: tuple (row, col) representing the starting position
+        goal: tuple (row, col) representing the goal position
+    
+    Returns:
+        path: list of positions from start to goal, or None if no path exists
+        nodes_expanded: number of nodes explored during the search
+    """
+    rows, cols = len(grid), len(grid[0])
+    
+    # Priority queue ordered by heuristic (manhattan distance)
+    # Format: (heuristic, position, path_so_far)
+    open_list = [(manhattan_distance(start, goal), start, [start])]
+    closed_set = set()
+    nodes_expanded = 0
+    
+    while open_list:
+        _, current, path = heapq.heappop(open_list)
+        
+        # Check if we've reached the goal
+        if current == goal:
+            return path, nodes_expanded
+        
+        # Skip if already visited
+        if current in closed_set:
+            continue
+        
+        closed_set.add(current)
+        nodes_expanded += 1
+        
+        # Get valid neighbors
+        for neighbor in get_neighbors(current, grid, rows, cols):
+            if neighbor not in closed_set:
+                new_path = path + [neighbor]
+                heuristic = manhattan_distance(neighbor, goal)
+                heapq.heappush(open_list, (heuristic, neighbor, new_path))
+    
+    return None, nodes_expanded  # No path found
+
+def manhattan_distance(pos1, pos2):
+    """Calculate Manhattan distance between two positions."""
+    return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
+
+def get_neighbors(position, grid, rows, cols):
+    """Get all valid neighboring positions (up, down, left, right)."""
+    r, c = position
+    neighbors = []
+    
+    # Possible moves: up, down, left, right
+    for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        new_r, new_c = r + dr, c + dc
+        
+        # Check if the move is valid (within bounds and not an obstacle)
+        if (0 <= new_r < rows and 0 <= new_c < cols and grid[new_r][new_c] == 0):
+            neighbors.append((new_r, new_c))
+    
+    return neighbors
+
+def print_grid(grid, path=None, start=None, goal=None):
+    """
+    Print the grid with the path, start, and goal positions highlighted.
+    
+    Args:
+        grid: 2D list representing the environment
+        path: list of positions in the path
+        start: tuple representing the starting position
+        goal: tuple representing the goal position
+    """
+    path_set = set(path) if path else set()
+    
+    for r in range(len(grid)):
+        row_str = ""
+        for c in range(len(grid[0])):
+            pos = (r, c)
+            if pos == start:
+                row_str += "S "
+            elif pos == goal:
+                row_str += "G "
+            elif pos in path_set:
+                row_str += "* "
+            elif grid[r][c] == 1:
+                row_str += "■ "
+            else:
+                row_str += ". "
+        print(row_str)
+
+def get_user_input():
+    """Get grid dimensions, obstacles, start, and goal positions from the user."""
+    # Get grid dimensions
+    while True:
+        try:
+            rows = int(input("Enter number of rows: "))
+            cols = int(input("Enter number of columns: "))
+            if rows > 0 and cols > 0:
+                break
+            else:
+                print("Please enter positive integers for rows and columns.")
+        except ValueError:
+            print("Please enter valid integers.")
+    
+    # Initialize an empty grid
+    grid = [[0 for _ in range(cols)] for _ in range(rows)]
+    
+    # Get obstacle positions
+    print(f"\nEnter obstacle positions (row, col). Row range: 0-{rows-1}, Col range: 0-{cols-1}")
+    print("Type 'done' when finished.")
+    
+    while True:
+        obstacle_input = input("Obstacle position (row,col): ")
+        if obstacle_input.lower() == 'done':
+            break
+            
+        try:
+            r, c = map(int, obstacle_input.split(','))
+            if 0 <= r < rows and 0 <= c < cols:
+                grid[r][c] = 1
+            else:
+                print(f"Position out of bounds. Please enter values within range (0-{rows-1}, 0-{cols-1}).")
+        except:
+            print("Invalid input. Please use format 'row,col' (e.g., '2,3').")
+    
+    # Get start position
+    while True:
+        try:
+            start_input = input("\nEnter start position (row,col): ")
+            start_r, start_c = map(int, start_input.split(','))
+            
+            if 0 <= start_r < rows and 0 <= start_c < cols:
+                if grid[start_r][start_c] == 1:
+                    print("Start position cannot be an obstacle.")
+                else:
+                    start = (start_r, start_c)
+                    break
+            else:
+                print(f"Position out of bounds. Please enter values within range (0-{rows-1}, 0-{cols-1}).")
+        except:
+            print("Invalid input. Please use format 'row,col' (e.g., '2,3').")
+    
+    # Get goal position
+    while True:
+        try:
+            goal_input = input("Enter goal position (row,col): ")
+            goal_r, goal_c = map(int, goal_input.split(','))
+            
+            if 0 <= goal_r < rows and 0 <= goal_c < cols:
+                if grid[goal_r][goal_c] == 1:
+                    print("Goal position cannot be an obstacle.")
+                elif (goal_r, goal_c) == start:
+                    print("Goal position cannot be the same as start position.")
+                else:
+                    goal = (goal_r, goal_c)
+                    break
+            else:
+                print(f"Position out of bounds. Please enter values within range (0-{rows-1}, 0-{cols-1}).")
+        except:
+            print("Invalid input. Please use format 'row,col' (e.g., '2,3').")
+    
+    return grid, start, goal
+
+def visualize_path(grid, path, start, goal):
+    """
+    Visualize the grid and path in a graphical format using matplotlib.
+    
+    Args:
+        grid: 2D list representing the grid.
+        path: List of positions representing the path found.
+        start: Tuple representing the start position.
+        goal: Tuple representing the goal position.
+    """
+    # Create a grid with obstacles marked as 1, free spaces as 0
+    grid_array = np.array(grid)
+
+    # Create the plot
+    fig, ax = plt.subplots()
+    
+    # Show the grid
+    ax.imshow(grid_array, cmap='binary', origin='upper')
+
+    # Mark the path (the cells that belong to the path)
+    if path:
+        path_x, path_y = zip(*path)  # Extract x and y coordinates of the path
+        ax.scatter(path_y, path_x, color='blue', label='Path', s=100)  # Mark the path in blue
+
+    # Mark obstacles (where grid is 1)
+    obstacles_x, obstacles_y = zip(*[(r, c) for r in range(len(grid)) for c in range(len(grid[0])) if grid[r][c] == 1])
+    ax.scatter(obstacles_y, obstacles_x, color='red', label='Obstacle', s=100)  # Mark obstacles in red
+
+    # Mark start and goal positions
+    ax.scatter(start[1], start[0], color='green', label='Start', s=100)  # Start position in green
+    ax.scatter(goal[1], goal[0], color='purple', label='Goal', s=100)  # Goal position in purple
+
+    # Add labels and legend
+    ax.set_xlabel('Columns')
+    ax.set_ylabel('Rows')
+    ax.legend(loc='upper left')
+    
+    # Show the plot
+    plt.show()
+
+def main():
+    print("Best First Search for Robot Navigation")
+    print("=====================================")
+    
+    grid, start, goal = get_user_input()
+    
+    print("\nGrid Layout:")
+    print_grid(grid, start=start, goal=goal)
+    
+    print("\nSearching for path...")
+    start_time = time.time()
+    path, nodes_expanded = best_first_search(grid, start, goal)
+    end_time = time.time()
+    
+    if path:
+        print(f"\nPath found! Length: {len(path)}")
+        print(f"Total nodes expanded: {nodes_expanded}")
+        print(f"Time taken: {end_time - start_time:.2f} seconds")
+        
+        print("\nPath Visualization:")
+        visualize_path(grid, path, start, goal)
+        
+        print("\nPath steps:")
+        for i, (r, c) in enumerate(path):
+            print(f"Step {i}: ({r}, {c})")
+    else:
+        print("\nNo path found! The goal is unreachable from the start position.")
+
+if __name__ == "__main__":
+    main()

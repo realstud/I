@@ -1,0 +1,98 @@
+import networkx as nx
+import matplotlib.pyplot as plt
+
+class MapColoringCSP:
+    def __init__(self, regions, colors, adjacency):
+        self.regions = regions  # List of regions (nodes in the graph)
+        self.colors = colors  # List of available colors
+        self.adjacency = adjacency  # Adjacency list defining neighboring regions
+        self.assignment = {}  # Dictionary to store region-color assignments
+
+    def is_valid(self, region, color):
+        """Check if assigning 'color' to 'region' is valid based on adjacency constraints."""
+        for neighbor in self.adjacency.get(region, []):
+            if neighbor in self.assignment and self.assignment[neighbor] == color:
+                return False  # A neighbor has the same color, so it's not a valid assignment
+        return True
+
+    def backtrack(self, index=0):
+        """Backtracking algorithm to find a valid color assignment."""
+        if index == len(self.regions):
+            return True  # All regions are assigned a valid color
+
+        region = self.regions[index]
+        for color in self.colors:
+            if self.is_valid(region, color):
+                self.assignment[region] = color
+                if self.backtrack(index + 1):
+                    return True
+                del self.assignment[region]  # Backtrack if assignment fails
+
+        return False  # No valid color found for this region
+
+    def solve(self):
+        """Initiate backtracking and return the final assignment."""
+        if self.backtrack():
+            return self.assignment
+        else:
+            return None  # No solution found
+
+    def draw_graph(self):
+        """Visualizes the graph with colored nodes."""
+        G = nx.Graph()
+
+        # Add nodes and edges
+        for region in self.regions:
+            G.add_node(region)
+        for region, neighbors in self.adjacency.items():
+            for neighbor in neighbors:
+                G.add_edge(region, neighbor)
+
+        pos = nx.spring_layout(G)
+
+        # Ensure user input colors are valid
+        node_colors = [self.assignment.get(node, 'gray') for node in G.nodes()]
+        
+        # Draw graph WITHOUT cmap
+        nx.draw(G, pos, with_labels=True, node_color=node_colors, edge_color='black', 
+                node_size=2000, font_size=12)
+
+        plt.show()
+
+# User Input
+regions = input("Enter regions (comma separated): ").split(',')
+colors = input("Enter available colors (comma separated): ").split(',')
+adjacency = {}
+
+print("Enter adjacency list (format: region:neighbor1,neighbor2,...; e.g., A:B,C)")
+for region in regions:
+    neighbors = input(f"Neighbors of {region}: ").split(',')
+    adjacency[region] = [neighbor for neighbor in neighbors if neighbor]
+
+# Create CSP instance
+csp = MapColoringCSP(regions, colors, adjacency)
+solution = csp.solve()
+
+if solution:
+    print("\nColoring Solution:")
+    for region, color in solution.items():
+        print(f"{region}: {color}")
+    csp.draw_graph()
+else:
+    print("No valid coloring found.")
+
+
+
+input:
+Enter regions (comma separated):  A,B,C,D,E,F,G,H,I
+Enter available colors (comma separated):  RED,BLUE,GREEN
+Enter adjacency list (format: region:neighbor1,neighbor2,...; e.g., A:B,C)
+Neighbors of A:  B,C,D,E,G,H
+Neighbors of B:  A,F
+Neighbors of C:  A,E,I
+Neighbors of D:  A,H
+Neighbors of E:  A,C
+Neighbors of F:  G,B
+Neighbors of G:  A,F,H
+Neighbors of H:  A,G,D,I
+Neighbors of I:  C,H

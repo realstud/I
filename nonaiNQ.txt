@@ -1,0 +1,86 @@
+class NQueensSolver:
+    def __init__(self, n: int):
+        """Initialize the N-Queens solver with the board size n."""
+        self.n = n
+        self.board = [[0] * n for _ in range(n)]
+
+    def print_board(self) -> None:
+        """Print the chessboard with queens placed."""
+        for row in self.board:
+            print(" ".join("Q" if cell else "." for cell in row))
+        print("\n")
+
+    def is_safe(self, row: int, col: int) -> bool:
+        """
+        Check if it's safe to place a queen at self.board[row][col].
+        
+        Args:
+            row: Current row to check
+            col: Current column to check
+            
+        Returns:
+            bool: True if it's safe to place a queen, False otherwise
+        """
+        # Check column
+        for i in range(row):
+            if self.board[i][col] == 1:
+                return False
+
+        # Check upper-left diagonal
+        for i, j in zip(range(row, -1, -1), range(col, -1, -1)):
+            if self.board[i][j] == 1:
+                return False
+
+        # Check upper-right diagonal
+        for i, j in zip(range(row, -1, -1), range(col, self.n)):
+            if self.board[i][j] == 1:
+                return False
+
+        return True
+
+    def solve(self, row: int = 0) -> bool:
+        """
+        Solve the N-Queens problem using backtracking.
+        
+        Args:
+            row: Current row being processed (default: 0)
+            
+        Returns:
+            bool: True if a solution is found, False otherwise
+        """
+        if row == self.n:
+            print("Solution:")
+            self.print_board()
+            return True  # Stop after the first solution
+            # To find all solutions, return False here and continue exploring.
+
+        for col in range(self.n):
+            if self.is_safe(row, col):
+                self.board[row][col] = 1  # Place the queen
+                if self.solve(row + 1):  # Recur for the next row
+                    return True
+                self.board[row][col] = 0  # Backtrack
+
+        return False
+
+    def find_solution(self) -> None:
+        """Start solving and handle the case where no solution exists."""
+        if not self.solve():
+            print(f"No solution exists for {self.n} queens.")
+
+def main() -> None:
+    """Main function to execute the N-Queens solver."""
+    try:
+        n = int(input("Enter the number of queens (n): "))
+        if n < 1:
+            print("Number of queens must be at least 1.")
+            return
+            
+        solver = NQueensSolver(n)
+        solver.find_solution()
+        
+    except ValueError:
+        print("Please enter a valid integer.")
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,74 @@
+class TicTacToe:
+    def __init__(self):
+        self.board = [" " for _ in range(9)]
+        self.current_player = "X"
+        
+    def make_move(self, position):
+        if self.board[position] == " ":
+            self.board[position] = self.current_player
+            if self.check_winner():
+                return f"Player {self.current_player} wins!"
+            elif " " not in self.board:
+                return "It's a tie!"
+            self.current_player = "O" if self.current_player == "X" else "X"
+            return None
+        return "Invalid move. Try again."
+    
+    def check_winner(self):
+        # Check rows
+        for i in range(0, 9, 3):
+            if self.board[i] == self.board[i+1] == self.board[i+2] != " ":
+                return True
+        
+        # Check columns
+        for i in range(3):
+            if self.board[i] == self.board[i+3] == self.board[i+6] != " ":
+                return True
+        
+        # Check diagonals
+        if self.board[0] == self.board[4] == self.board[8] != " ":
+            return True
+        if self.board[2] == self.board[4] == self.board[6] != " ":
+            return True
+        
+        return False
+    
+    def display_board(self):
+        for i in range(0, 9, 3):
+            print(f"{self.board[i]} | {self.board[i+1]} | {self.board[i+2]}")
+            if i < 6:
+                print("---------")
+
+def play_game():
+    game = TicTacToe()
+    
+    print("Welcome to Tic Tac Toe!")
+    print("Positions are numbered from 0-8, left to right, top to bottom:")
+    print("0 | 1 | 2")
+    print("---------")
+    print("3 | 4 | 5")
+    print("---------")
+    print("6 | 7 | 8")
+    print("\nLet's begin!\n")
+    
+    while True:
+        game.display_board()
+        position = input(f"\nPlayer {game.current_player}'s turn. Enter position (0-8): ")
+        
+        try:
+            position = int(position)
+            if 0 <= position <= 8:
+                result = game.make_move(position)
+                if result:
+                    print("\n")
+                    game.display_board()
+                    print(f"\n{result}")
+                    break
+            else:
+                print("\nPlease enter a number between 0 and 8.")
+        except ValueError:
+            print("\nPlease enter a valid number.")
+
+if __name__ == "__main__":
+    play_game()
+

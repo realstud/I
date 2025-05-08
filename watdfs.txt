@@ -1,0 +1,84 @@
+from collections import deque
+import matplotlib.pyplot as plt
+import networkx as nx
+
+def get_next_states(current_state, jug1_max, jug2_max):
+    jug1, jug2 = current_state
+    next_states = []
+
+    next_states.append((jug1_max, jug2))  # Fill Jug1
+    next_states.append((jug1, jug2_max))  # Fill Jug2
+    next_states.append((0, jug2))  # Empty Jug1
+    next_states.append((jug1, 0))  # Empty Jug2
+
+    # Pour Jug1 -> Jug2
+    space_in_jug2 = jug2_max - jug2
+    amount_to_pour = min(jug1, space_in_jug2)
+    next_states.append((jug1 - amount_to_pour, jug2 + amount_to_pour))
+
+    # Pour Jug2 -> Jug1
+    space_in_jug1 = jug1_max - jug1
+    amount_to_pour = min(jug2, space_in_jug1)
+    next_states.append((jug1 + amount_to_pour, jug2 - amount_to_pour))
+
+    return next_states
+
+def depth_first_search(jug1_max, jug2_max, target):
+    start_state = (0, 0)
+    visited = set()
+    stack = [(start_state, [start_state])]
+    tree_edges = []
+
+    while stack:
+        current_state, path = stack.pop()
+
+        if current_state in visited:
+            continue
+
+        visited.add(current_state)
+
+        if current_state[0] == target or current_state[1] == target:
+            return path, tree_edges
+
+        next_states = get_next_states(current_state, jug1_max, jug2_max)
+
+        for next_state in next_states:
+            if next_state not in visited:
+                stack.append((next_state, path + [next_state]))
+                tree_edges.append((current_state, next_state))
+
+    return None, tree_edges
+
+def visualize_tree(tree_edges, solution_path):
+    G = nx.DiGraph()
+    G.add_edges_from(tree_edges)
+
+    # Layout for the tree
+    pos = nx.nx_agraph.graphviz_layout(G, prog="dot")
+    plt.figure(figsize=(10, 8))
+
+    nx.draw(G, pos, with_labels=True, node_size=3000, node_color="lightblue")
+    solution_edges = [(solution_path[i], solution_path[i + 1]) for i in range(len(solution_path) - 1)]
+    nx.draw_networkx_edges(G, pos, edgelist=solution_edges, edge_color="red", width=2.5)
+
+    plt.title("DFS Tree Representation", fontsize=16)
+    plt.show()
+
+def main_dfs():
+    print("=== Water Jug Problem: DFS ===")
+    jug1_capacity = int(input("Enter capacity of first jug: "))
+    jug2_capacity = int(input("Enter capacity of second jug: "))
+    target = int(input("Enter target amount: "))
+
+    solution, tree_edges = depth_first_search(jug1_capacity, jug2_capacity, target)
+
+    if solution:
+        print("\nSolution Steps:")
+        for i, state in enumerate(solution):
+            print(f"Step {i}: Jug1 = {state[0]}, Jug2 = {state[1]}")
+        visualize_tree(tree_edges, solution)
+    else:
+        print("\nNo solution found!")
+
+if __name__ == "__main__":
+    main_dfs()
