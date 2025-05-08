@@ -1,0 +1,63 @@
+import re
+
+def build_dictionary(filename):
+    dictionary = {}
+    with open(filename, 'r') as file:
+        for line in file:
+            if line.strip() == "END-OF-CORPUS":
+                break
+            words = re.findall(r'\b\w[\w\-\']*\b', line.lower())
+            for word in words:
+                if word in dictionary:
+                    dictionary[word] += 1
+                else:
+                    dictionary[word] = 1
+    return dictionary
+
+def suggest_correction(dictionary, word):
+    # Check if the word is already in the dictionary
+    if word in dictionary:
+        return word
+    
+    # Generate possible corrections (insertions, deletions, replacements, transpositions)
+    possible_corrections = []
+    
+    # Insertions
+    for i in range(len(word) + 1):
+        for c in 'abcdefghijklmnopqrstuvwxyz':
+            possible_corrections.append(word[:i] + c + word[i:])
+    
+    # Deletions
+    for i in range(len(word)):
+        possible_corrections.append(word[:i] + word[i+1:])
+    
+    # Replacements
+    for i in range(len(word)):
+        for c in 'abcdefghijklmnopqrstuvwxyz':
+            possible_corrections.append(word[:i] + c + word[i+1:])
+    
+    # Transpositions
+    for i in range(len(word) - 1):
+        possible_corrections.append(word[:i] + word[i+1] + word[i] + word[i+2:])
+    
+    # Filter corrections to those in the dictionary
+    valid_corrections = [corr for corr in possible_corrections if corr in dictionary]
+    
+    # Return the most frequent correction, or the first one if there are multiple with the same frequency
+    if valid_corrections:
+        max_freq = max(dictionary[corr] for corr in valid_corrections)
+        best_corrections = [corr for corr in valid_corrections if dictionary[corr] == max_freq]
+        return min(best_corrections)
+    
+    # If no valid corrections are found, return the original word
+    return word
+
+def main():
+    dictionary = build_dictionary('corpus.txt')
+    N = int(input())
+    for _ in range(N):
+        word = input().strip().lower()
+        print(suggest_correction(dictionary, word))
+
+if _name_ == "_main_":
+    main()

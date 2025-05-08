@@ -1,0 +1,174 @@
+class SudokuSolver:
+    def __init__(self, board):
+        # Initialize the 9x9 board
+        self.board = board
+        # Size of the board (9x9)
+        self.size = 9
+        # Size of each 3x3 box
+        self.box_size = 3
+        # Keep track of empty cells
+        self.empty_cells = []
+        for i in range(self.size):
+            for j in range(self.size):
+                if self.board[i][j] == 0:
+                    self.empty_cells.append((i, j))
+    
+    def is_valid(self, row, col, num):
+        """Check if placing num at position (row, col) is valid"""
+        # Check row
+        for j in range(self.size):
+            if self.board[row][j] == num:
+                return False
+        
+        # Check column
+        for i in range(self.size):
+            if self.board[i][col] == num:
+                return False
+        
+        # Check 3x3 box
+        box_row, box_col = (row // self.box_size) * self.box_size, (col // self.box_size) * self.box_size
+        for i in range(box_row, box_row + self.box_size):
+            for j in range(box_col, box_col + self.box_size):
+                if self.board[i][j] == num:
+                    return False
+        
+        return True
+    
+    def get_most_constrained_cell(self):
+        """
+        Find the empty cell with the least number of valid options
+        (Minimum Remaining Values heuristic)
+        """
+        min_options = self.size + 1
+        most_constrained = None
+        
+        for row, col in self.empty_cells:
+            if self.board[row][col] == 0:  # If cell is still empty
+                options_count = sum(1 for num in range(1, self.size + 1) if self.is_valid(row, col, num))
+                if options_count < min_options:
+                    min_options = options_count
+                    most_constrained = (row, col)
+        
+        return most_constrained
+    
+    def solve_with_backtracking(self):
+        """Solve Sudoku using backtracking with MRV heuristic"""
+        # Check if board is completely filled
+        if not self.empty_cells:
+            return True
+        
+        # Get the most constrained cell
+        cell = self.get_most_constrained_cell()
+        if not cell:  # No empty cells left
+            return True
+        
+        row, col = cell
+        
+        # Try filling the cell with different values
+        for num in range(1, self.size + 1):
+            if self.is_valid(row, col, num):
+                # Place the number
+                self.board[row][col] = num
+                self.empty_cells.remove((row, col))
+                
+                # Recursively solve the rest of the board
+                if self.solve_with_backtracking():
+                    return True
+                
+                # If placing num doesn't lead to a solution, backtrack
+                self.board[row][col] = 0
+                self.empty_cells.append((row, col))
+        
+        return False
+    
+    def solve(self):
+        """Public method to solve the Sudoku puzzle"""
+        if self.solve_with_backtracking():
+            return self.board
+        else:
+            return None
+    
+    def print_board(self):
+        """Print the Sudoku board in a readable format"""
+        for i in range(self.size):
+            if i % self.box_size == 0 and i != 0:
+                print("-" * (self.size * 2 + self.box_size + 1))
+            
+            for j in range(self.size):
+                if j % self.box_size == 0 and j != 0:
+                    print("|", end=" ")
+                
+                if j == self.size - 1:
+                    print(self.board[i][j])
+                else:
+                    print(self.board[i][j], end=" ")
+
+
+def get_user_input():
+    """Get Sudoku board from user input"""
+    print("Enter the Sudoku puzzle row by row (use 0 for empty cells).")
+    print("For each row, enter 9 digits separated by spaces.")
+    
+    board = []
+    for i in range(9):
+        while True:
+            try:
+                row = input(f"Enter row {i+1}: ")
+                row_values = [int(x) for x in row.split()]
+                
+                # Validate input
+                if len(row_values) != 9:
+                    print("Error: Each row must contain exactly 9 digits. Please try again.")
+                    continue
+                    
+                if not all(0 <= x <= 9 for x in row_values):
+                    print("Error: All values must be between 0 and 9. Please try again.")
+                    continue
+                    
+                board.append(row_values)
+                break
+                
+            except ValueError:
+                print("Error: Invalid input. Please enter digits separated by spaces.")
+    
+    return board
+
+
+def main():
+    print("Welcome to the Sudoku Solver!")
+    print("=" * 40)
+    
+    # Ask if user wants to use example or input their own
+    choice = input("Do you want to input your own Sudoku puzzle? (y/n): ").lower()
+    
+    if choice == 'y':
+        board = get_user_input()
+    else:
+        # Use example board
+        print("Using example Sudoku puzzle...")
+        board = [
+            [5, 3, 0, 0, 7, 0, 0, 0, 0],
+            [6, 0, 0, 1, 9, 5, 0, 0, 0],
+            [0, 9, 8, 0, 0, 0, 0, 6, 0],
+            [8, 0, 0, 0, 6, 0, 0, 0, 3],
+            [4, 0, 0, 8, 0, 3, 0, 0, 1],
+            [7, 0, 0, 0, 2, 0, 0, 0, 6],
+            [0, 6, 0, 0, 0, 0, 2, 8, 0],
+            [0, 0, 0, 4, 1, 9, 0, 0, 5],
+            [0, 0, 0, 0, 8, 0, 0, 7, 9]
+        ]
+    
+    solver = SudokuSolver(board)
+    print("\nUnsolved Sudoku:")
+    solver.print_board()
+    
+    print("\nSolving...")
+    if solver.solve():
+        print("\nSolved Sudoku:")
+        solver.print_board()
+    else:
+        print("\nNo solution exists for this Sudoku puzzle.")
+
+
+if __name__ == "__main__":
+    main()

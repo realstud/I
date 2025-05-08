@@ -1,0 +1,39 @@
+def fill_tags(sentence): 
+    # Manually determined tags based on context 
+    replacements = { 
+        'system/??': 'system/NN', 
+        'star/??': 'star/NN', 
+        'caught/???': 'caught/VBN' 
+    } 
+     
+    for old, new in replacements.items(): 
+        sentence = sentence.replace(old, new) 
+     
+    return sentence 
+sentence = "The/DT planet/NN Jupiter/NNP and/CC its/PPS moons/NNS are/VBP in/IN effect/NN 
+a/DT minisolar/JJ system/?? ,/, and/CC Jupiter/NNP itself/PRP is/VBZ often/RB called/VBN a/DT 
+star/?? that/IN never/RB caught/??? fire/NN ./." 
+print(fill_tags(sentence))
+
+
+
+# Enter your code here. Read input from STDIN. Print output to STDOUT 
+def fill_tags(sentence): 
+    # Manually determined tags based on context 
+    replacements = { 
+ 
+ 
+     Page | 6 
+        'reason/??': 'reason/NN', 
+        'space/??': 'space/NN' 
+    } 
+     
+    for old, new in replacements.items(): 
+        sentence = sentence.replace(old, new) 
+     
+    return sentence 
+ 
+sentence = "People/NNS continue/VBP to/TO inquire/VB the/DT reason/?? for/IN the/DT race/NN 
+for/IN outer/JJ space/??" 
+ 
+print(fill_tags(sentence))

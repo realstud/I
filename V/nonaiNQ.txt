@@ -1,0 +1,43 @@
+def solve_n_queens():
+    def print_solution(board):
+        for row in board:
+            print(" ".join("Q" if cell else "." for cell in row))
+        print()
+
+    def is_safe(board, row, col):
+        for i in range(col):
+            if board[row][i]:
+                return False
+        for i, j in zip(range(row, -1, -1), range(col, -1, -1)):
+            if board[i][j]:
+                return False
+        for i, j in zip(range(row, len(board)), range(col, -1, -1)):
+            if board[i][j]:
+                return False
+        return True
+
+    def solve(board, col):
+        if col >= len(board):
+            print_solution(board)
+            return True
+        res = False
+        for i in range(len(board)):
+            if is_safe(board, i, col):
+                board[i][col] = True
+                res = solve(board, col + 1) or res
+                board[i][col] = False
+        return res
+
+    try:
+        n = int(input("Enter the size of the chessboard (N): "))
+        if n <= 0:
+            print("N must be a positive integer.")
+            return
+        board = [[False] * n for _ in range(n)]
+        if not solve(board, 0):
+            print("No solution exists.")
+    except ValueError:
+        print("Invalid input. Please enter a positive integer.")
+
+if __name__ == "__main__":
+    solve_n_queens()
